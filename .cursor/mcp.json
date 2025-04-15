@@ -1,0 +1,7 @@
+{
+  "mcpServers": {
+    "demcp_browser_mcp": {
+      "url": "http://localhost:8000/sse"
+    }
+  }
+}
