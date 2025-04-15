@@ -101,7 +101,7 @@ def init_configuration() -> Dict[str, Any]:
             "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/85.0.4183.102 Safari/537.36",
         ),
         # Task settings
-        "MAX_AGENT_STEPS": int(os.environ.get("MAX_AGENT_STEPS", 10)),
+        "MAX_AGENT_STEPS": int(os.environ.get("MAX_AGENT_STEPS", 30)),
         # Browser arguments
         "BROWSER_ARGS": [
             "--no-sandbox",

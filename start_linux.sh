@@ -212,12 +212,11 @@ check_or_install "mcp-proxy" "" "" "" "" "mcp-proxy" # Installs via uv
 # 2. Project Setup
 print_info "Setting up the project..."
 
-## Get Git Repo URL
-read -p "Please enter the Git repository URL for your project: " repo_url
-if [[ -z "$repo_url" ]]; then
-    print_error "Repository URL cannot be empty."
-fi
+## Define Git Repo URL (Hardcoded)
+repo_url="https://github.com/LyiZri/demcp_browser_use"
+print_info "Using hardcoded repository URL: $repo_url"
 
+# Extract project directory name from URL
 project_dir=$(basename "$repo_url" .git)
 
 ## Clone Repo

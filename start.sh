@@ -138,12 +138,11 @@ check_or_install "mcp-proxy" "" "mcp-proxy"
 # 2. Project Setup
 print_info "Setting up the project..."
 
-## Get Git Repo URL
-read -p "Please enter the Git repository URL for your project: " repo_url
-if [[ -z "$repo_url" ]]; then
-    print_error "Repository URL cannot be empty."
-fi
+## Define Git Repo URL (Hardcoded)
+repo_url="https://github.com/LyiZri/demcp_browser_use"
+print_info "Using hardcoded repository URL: $repo_url"
 
+# Extract project directory name from URL
 project_dir=$(basename "$repo_url" .git)
 
 ## Clone Repo
@@ -215,18 +214,23 @@ print_warning "Review $env_file to set optional variables like CHROME_PATH if ne
 install_globally="n"
 read -p "Do you want to build and install 'demcp_browser_mcp' as a global tool using uv? (Useful for running outside the project dir) [y/N]: " install_globally
 
-run_command="python server/server.py --stdio" # Default to running script directly
-
+# Define the command to run, adding dummy ports for the workaround
 if [[ "$install_globally" =~ ^[Yy]$ ]]; then
     print_info "Building the project wheel..."
     uv build || print_error "Failed to build the project."
     print_info "Installing the tool globally using uv..."
-    uv tool install dist/demcp_browser_mcp-*.whl --force || print_error "Failed to install the tool globally."
+    # Find the built wheel file
+    wheel_file=$(find dist -name "demcp_browser_mcp-*.whl" | head -n 1)
+     if [[ -z "$wheel_file" ]]; then
+         print_error "Could not find the built wheel file in dist directory."
+     fi
+    uv tool install "$wheel_file" --force || print_error "Failed to install the tool globally."
     print_info "'demcp_browser_mcp' installed globally."
-    print_warning "Remember to ensure the uv tool bin path is in your main shell's PATH."
-    run_command="demcp_browser_mcp run server --stdio"
+    print_warning "Remember to ensure the uv tool bin path ('$HOME/.cargo/bin' or similar) is in your main shell's PATH."
+    run_command="demcp_browser_mcp run server --stdio --port 8001 --proxy-port 9001" # Workaround: Add dummy ports
 else
     print_info "Skipping global installation. You'll need to run the server using 'python server/server.py'."
+    run_command="python server/server.py --stdio --port 8001 --proxy-port 9001" # Workaround: Add dummy ports
 fi
 
 
@@ -251,19 +255,69 @@ echo ""
 
 # 6. (Optional) Start Server
 start_now="n"
-read -p "Do you want to attempt to start the server now in stdio mode? (You'll need to configure Cursor separately) [y/N]: " start_now
+read -p "Do you want to attempt to start the server now in stdio mode? (Requires terminal restart first; Configure Cursor separately) [y/N]: " start_now
 
 if [[ "$start_now" =~ ^[Yy]$ ]]; then
-    print_info "Attempting to start the server using command: '$run_command'"
+    print_warning "Make sure you have restarted your terminal before running this (if needed for PATH changes)."
+
+    # Check for netcat (nc) command, needed for port checking
+    if ! command -v nc &> /dev/null; then
+        print_warning "'nc' (netcat) command not found, needed for port checking."
+        if command -v brew &> /dev/null; then
+            print_info "Attempting to install 'netcat' using Homebrew..."
+            if brew install netcat; then
+                print_info "'netcat' installed successfully."
+            else
+                print_error "Failed to install 'netcat'. Cannot check for available ports automatically."
+            fi
+        else
+            print_error "'brew' not found. Cannot install 'netcat'. Cannot check for available ports automatically."
+        fi
+        # Re-check after install attempt
+        if ! command -v nc &> /dev/null; then
+           print_error "'nc' command still not found after installation attempt."
+        fi
+    fi
+
+    # Find available port starting from 8000
+    port=8000
+    while nc -z 127.0.0.1 $port &>/dev/null; do
+        print_info "Port $port is in use, trying next..."
+        port=$((port + 1))
+        if [ $port -gt 9000 ]; then # Safety break to avoid infinite loop
+            print_error "Could not find an available port between 8000 and 9000."
+            exit 1
+        fi
+    done
+    found_port=$port
+    proxy_port=$((found_port + 1)) # Assign proxy port relative to found port
+    print_info "Found available port: $found_port (using $proxy_port for proxy if needed by server internal logic)"
+
+    # Construct the final command with the found ports
+    # Check if the global install was chosen earlier to select the base command
+    final_run_command=""
+    if [[ "$install_globally" =~ ^[Yy]$ ]]; then
+        final_run_command="demcp_browser_mcp run server --stdio --port $found_port --proxy-port $proxy_port"
+    else
+        final_run_command="python server/server.py --stdio --port $found_port --proxy-port $proxy_port"
+    fi
+
+    print_info "Attempting to start the server using command: '$final_run_command'"
     print_warning "The script will now run the server. Press Ctrl+C to stop it when finished."
-    # Execute the command using 'exec' to replace the script process,
-    # or just run it directly if you want the script to potentially continue after server stops.
-    eval "$run_command"
+    # Execute the command
+    eval "$final_run_command"
 else
-    print_info "Server not started. You can start it manually using:"
-    print_info "  cd $project_dir"
+    print_info "Server not started. After restarting terminal, you can start it manually using (example with port 8000):"
+    # Determine the base command for the manual instructions
+    manual_base_command=""
+     if [[ "$install_globally" =~ ^[Yy]$ ]]; then
+        manual_base_command="demcp_browser_mcp run server"
+    else
+        manual_base_command="python server/server.py"
+    fi
+    print_info "  cd $(pwd)" # Use pwd as project_dir might not be set if clone was skipped
     print_info "  source .venv/bin/activate"
-    print_info "  $run_command"
+    print_info "  $manual_base_command --stdio --port 8000 --proxy-port 8001 # Adjust port if needed"
 fi
 
 exit 0
