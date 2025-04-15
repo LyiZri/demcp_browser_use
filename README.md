@@ -93,23 +93,18 @@ If not using the setup scripts or after manual setup:
 
 ```bash
 # Make sure you are in the project directory with venv activated
-python server/server.py --port 8000
+uv run server --port 8000
 ```
 
 ### stdio Mode
 
-**Option 1: Run directly from source (Recommended for dev)**
 
-```bash
-# Make sure you are in the project directory with venv activated
-python server/server.py --stdio
-```
-
-**Option 2: Build and install globally**
+**Option 1: Build and install globally**
 
 ```bash
 # 1. Build and install
 uv build
+uv tool uninstall demcp_browser_mcp 2>/dev/null || true
 uv tool install dist/demcp_browser_mcp-*.whl --force
 
 # 2. Run (ensure uv tool path is in PATH)

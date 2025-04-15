@@ -101,7 +101,7 @@ def init_configuration() -> Dict[str, Any]:
             "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/85.0.4183.102 Safari/537.36",
         ),
         # Task settings
-        "MAX_AGENT_STEPS": int(os.environ.get("MAX_AGENT_STEPS", 30)),
+        "MAX_AGENT_STEPS": int(os.environ.get("MAX_AGENT_STEPS", 10)),
         # Browser arguments
         "BROWSER_ARGS": [
             "--no-sandbox",
@@ -171,8 +171,7 @@ def create_mcp_server(
                         # Specify the path to your Chrome executable
                         # chrome_instance_path=os.getenv('CHROME_PATH',"/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"),  # macOS path
                         chrome_instance_path=os.getenv('CHROME_PATH',"/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"),  # macOS path
-                        window_width=window_width,
-                        window_height=window_height,
+                        
                         # For Windows, typically: 'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe'
                         # For Linux, typically: '/usr/bin/google-chrome'
                     )
@@ -187,25 +186,18 @@ def create_mcp_server(
                     logger.warning(f"Could not convert OPENAI_TEMPERATURE value '{temperature_str}' to float. Using default 0.0.")
                     temperature = 0.0
 
-                api_key = os.getenv('OPENAI_API_KEY')
+                api_key = os.getenv('OPENAI_API_KEY',"ak_f7dbdfb3bb021364899d00567ebca4c1")
                 if api_key is None:
                     logger.error("OPENAI_API_KEY environment variable is not set.")
                     raise ValueError("Error: OPENAI_API_KEY environment variable is not set.")
 
-                openai_api_base = os.getenv('OPENAI_API_BASE','https://dappapi.demcp.ai/v1')
-                llm_args = {
-                    "model": model_name,
-                    "temperature": temperature,
-                    "api_key": api_key,
-                }
-                if openai_api_base:
-                    llm_args["openai_api_base"] = openai_api_base
+                openai_api_base = os.getenv('OPENAI_API_BASE',"https://api.openai.com/v1")
 
                 llm = ChatOpenAI(
-                    model=model_name,              # Use variable
-                    temperature=temperature,       # Use variable
-                    api_key=api_key,               # Use variable
-                    openai_api_base=openai_api_base # Use variable
+                    model="gpt-4o-mini",              # Use variable
+                    temperature="0.0",       # Use variable
+                    api_key="sk-sKmh7xPWclhjnsxMsrknIO0me9aRe7zEG1ughUTqwpcJYzV3",               # Use variable
+                    openai_api_base="https://oai.max-api.com/v1" # Use variable
                 )
 
                 # Create agent with the fresh context and configured LLM
